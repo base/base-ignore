@@ -1,0 +1,40 @@
+{
+  "name": "base-ignore",
+  "description": "Plugin that adds an `.ignore` method that converts .gitignore patterns to glob patterns to base applications",
+  "version": "0.1.0",
+  "homepage": "https://github.com/node-base/base-ignore",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "node-base/base-ignore",
+  "bugs": {
+    "url": "https://github.com/node-base/base-ignore/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "gulp-format-md": "^0.1.7",
+    "mocha": "^2.4.5"
+  },
+  "keywords": [],
+  "verb": {
+    "layout": "default",
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": []
+    },
+    "reflinks": [
+      "verb"
+    ]
+  }
+}
