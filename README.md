@@ -39,6 +39,46 @@ console.log(mm(arr, '**/*.js', {ignore: app.ignore()}));
 
 Patterns in `.gitignore` are parsed and converted to glob patterns and the converted patterns are cached. This is useful in applications that need to potentially match against the same set of files repeatedly.
 
+## API
+
+### [.gitignore](index.js#L49)
+
+Get the `.gitignore` patterns for the current project. Also caches patterns on the `app.cache.ignores[cwd]` array.
+
+**Params**
+
+* `patterns` **{String|Array}**
+* `options` **{Object}**
+* `returns` **{Array}**: Returns the array of patterns stored for the current working directory
+
+**Example**
+
+```js
+var gitignored = app.gitignore();
+console.log(gitignored);
+
+// or get the patterns from the cache
+app.gitignore();
+console.log(app.cache.ignores[process.cwd()]);
+```
+
+### [.ignore](index.js#L78)
+
+Add one or more ignore patterns to `app.cache.ignores` for the current working directory.
+
+**Params**
+
+* `patterns` **{String|Array}**
+* `options` **{Object}**
+* `returns` **{Array}**: Returns the array of patterns stored for the current working directory
+
+**Example**
+
+```js
+app.ignore('foo');
+console.log(app.cache.ignores[process.cwd()]);
+```
+
 ## Related projects
 
 You might also be interested in these projects:
