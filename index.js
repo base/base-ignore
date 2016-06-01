@@ -8,24 +8,15 @@
 'use strict';
 
 var path = require('path');
-var debug = require('debug')('base-ignore');
 var utils = require('./utils');
 
-module.exports = function(config, fn) {
-  if (typeof config === 'function') {
-    fn = config;
-    config = {};
-  }
-
+module.exports = function(config) {
   return function plugin(app) {
-    if (!isValidInstance(this, fn)) return;
-    debug('initializing <%s>, from <%s>', __filename, module.parent.id);
+    if (!utils.isValid(app)) return;
 
     // ignores cache
     this.cache.ignores = this.cache.ignores || {};
-    if (typeof this.cwd === 'undefined') {
-      this.cwd = process.cwd();
-    }
+    this.use(utils.cwd());
 
     /**
      * Get the `.gitignore` patterns for the current project. Also caches
@@ -111,9 +102,12 @@ function toGlob(pattern) {
  */
 
 function gitignored(options) {
-  return gitignore(path.resolve(options.cwd, '.gitignore'))
-    .concat(options.patterns || [])
-    .concat([
+  options = options || {};
+  var filepath = path.resolve(options.cwd, '.gitignore');
+  var patterns = gitignore(filepath).concat(options.patterns || []);
+
+  if (options.defaults !== false) {
+    patterns = patterns.concat([
       '.git',
       '*.sublime-*',
       '.DS_Store',
@@ -124,8 +118,10 @@ function gitignored(options) {
       '{test/,}fixtures',
       '{test/,}actual',
       'tmp'
-    ])
-    .sort();
+    ]);
+  }
+
+  return patterns.sort();
 }
 
 /**
@@ -137,21 +133,4 @@ function gitignore(fp) {
   return utils.exists(fp)
     ? utils.parseGitignore(fp)
     : [];
-}
-
-/**
- * Only load the plugin onto a "valid" instance
- */
-
-function isValidInstance(app, fn) {
-  if (typeof fn === 'function' && !fn(app)) {
-    return false;
-  }
-  if (app.isView || app.isItem || app.isFile) {
-    return false;
-  }
-  if (app.isRegistered('base-ignore')) {
-    return false;
-  }
-  return true;
 }

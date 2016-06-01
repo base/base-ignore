@@ -2,14 +2,15 @@
 
 require('mocha');
 var assert = require('assert');
-var ignore = require('./');
-var Base = require('base');
 var mm = require('micromatch');
+var Base = require('base');
+var ignore = require('./');
 var app;
 
 describe('base-ignore', function() {
   beforeEach(function() {
     app = new Base();
+    app.isApp = true;
     app.use(ignore());
   });
 
