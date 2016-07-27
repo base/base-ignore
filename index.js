@@ -12,15 +12,16 @@ var utils = require('./utils');
 
 module.exports = function(config) {
   return function plugin(app) {
-    if (!utils.isValid(app)) return;
+    if (!utils.isValid(app, 'base-ignore')) return;
 
     // ignores cache
-    this.cache.ignores = this.cache.ignores || {};
+    this.cache.gitignored = this.cache.gitignored || {};
+    this.cache.ignored = this.cache.ignored || {};
     this.use(utils.cwd());
 
     /**
      * Get the `.gitignore` patterns for the current project. Also caches
-     * patterns on the `app.cache.ignores[cwd]` array.
+     * patterns on the `app.cache.ignored[cwd]` array.
      *
      * ```js
      * var gitignored = app.gitignore();
@@ -28,7 +29,7 @@ module.exports = function(config) {
      *
      * // or get the patterns from the cache
      * app.gitignore();
-     * console.log(app.cache.ignores[process.cwd()]);
+     * console.log(app.cache.ignored[process.cwd()]);
      * ```
      * @name .gitignore
      * @param {String|Array} `patterns`
@@ -38,26 +39,27 @@ module.exports = function(config) {
      */
 
     this.define('gitignore', function(options) {
-      if (!this.ignoresCache) {
-        this.define('ignoresCache', {});
-      }
-
       var opts = utils.merge({cwd: this.cwd}, config, options);
-      if (this.cache.ignores[opts.cwd]) {
-        return this.cache.ignores[opts.cwd];
+      if (this.cache.gitignored[opts.cwd]) {
+        return this.cache.gitignored[opts.cwd];
       }
 
-      var ignored = gitignored(opts).map(toGlob);
-      return update(this, ignored, opts);
+      var ignored = parseGitignore(opts);
+      var arr = utils.union([], ignored, this.ignore(options));
+      arr.sort(function(a, b) {
+        return a.localeCompare(b);
+      });
+
+      return update(this, arr, opts);
     });
 
     /**
-     * Add one or more ignore patterns to `app.cache.ignores` for
+     * Add one or more ignore patterns to `app.cache.ignored` for
      * the current working directory.
      *
      * ```js
      * app.ignore('foo');
-     * console.log(app.cache.ignores[process.cwd()]);
+     * console.log(app.cache.ignored[process.cwd()]);
      * ```
      * @name .ignore
      * @param {String|Array} `patterns`
@@ -68,8 +70,36 @@ module.exports = function(config) {
 
     this.define('ignore', function(patterns, options) {
       var opts = utils.merge({cwd: this.cwd}, config, options);
-      var ignored = utils.arrayify(patterns).map(toGlob);
+      if (this.cache.ignored[opts.cwd]) {
+        return this.cache.ignored[opts.cwd];
+      }
+      var ignored = utils.arrayify(patterns);
       return update(this, ignored, opts);
+    });
+
+    /**
+     * Return true if the given `filepath` is ignored by `.gitignore` and/or any
+     * custom ignore patterns that may have been defined.
+     *
+     * ```js
+     * console.log(app.isIgnored('.DS_Store'));
+     * //=> true
+     * console.log(app.isIgnored('index.js'));
+     * //=> false
+     * ```
+     *
+     * @param {String} `fp`
+     * @param {String} `options` If `app.ignore()` and/or `app.gitignore()` have already been called, this will use the cached ignored patterns, but you can also/alternatively pass ignore patterns on
+     * `options.ignore`
+     * @return {Boolean} Returns true if the filepath is ignored.
+     * @api public
+     */
+
+    this.define('isIgnored', function(fp, options) {
+      var opts = utils.merge({cwd: this.cwd}, config, options);
+      var ignored = this.gitignore(options);
+      fp = path.relative(opts.cwd, path.resolve(fp));
+      return utils.mm.any(fp, ignored);
     });
 
     /**
@@ -77,9 +107,8 @@ module.exports = function(config) {
      */
 
     function update(app, arr, opts) {
-      var cached = app.cache.ignores[opts.cwd] || [];
-      app.cache.ignores[opts.cwd] = utils.union([], cached, arr);
-      return app.cache.ignores[opts.cwd];
+      app.union('cache.ignored.' + opts.cwd, arr);
+      return app.cache.ignored[opts.cwd];
     }
 
     return plugin;
@@ -87,40 +116,31 @@ module.exports = function(config) {
 };
 
 /**
- * Convert .gitignore (wildmatch) patterns to
- * glob (bash) patterns
- */
-
-function toGlob(pattern) {
-  pattern = pattern.replace(/^[*]{2}\/?|\/?[*]{2}$/g, '');
-  pattern = pattern.replace(/^\/|\/$/, '');
-  return '**/' + pattern + '/**';
-}
-
-/**
  * Directories to exclude in the search
  */
 
-function gitignored(options) {
+function parseGitignore(options) {
   options = options || {};
   var filepath = path.resolve(options.cwd, '.gitignore');
-  var patterns = gitignore(filepath).concat(options.patterns || []);
+  var patterns = utils.union([], gitignore(filepath), options.patterns || []);
 
   if (options.defaults !== false) {
-    patterns = patterns.concat([
-      '.git',
+    patterns = utils.union([], patterns, [
       '*.sublime-*',
       '.DS_Store',
+      '.git',
       '.idea',
       'bower_components',
       'node_modules',
       'npm-debug.log',
-      '{test/,}fixtures',
-      '{test/,}actual',
+      'actual',
+      'test/actual',
+      'fixtures',
+      'test/fixtures',
+      'Thumbs.db',
       'tmp'
     ]);
   }
-
   return patterns.sort();
 }
 
@@ -130,7 +150,5 @@ function gitignored(options) {
  */
 
 function gitignore(fp) {
-  return utils.exists(fp)
-    ? utils.parseGitignore(fp)
-    : [];
+  return utils.exists(fp) ? utils.parseGitignore(fp) : [];
 }

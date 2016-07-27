@@ -1,6 +1,7 @@
 'use strict';
 
 require('mocha');
+var path = require('path');
 var assert = require('assert');
 var mm = require('micromatch');
 var Base = require('base');
@@ -31,7 +32,7 @@ describe('base-ignore', function() {
   describe('.gitignore', function() {
     it('should create ignore patterns from .gitignore', function() {
       assert(app.gitignore().length);
-      assert(app.gitignore().indexOf('**/.DS_Store/**') !== -1);
+      assert(app.gitignore().indexOf('.DS_Store') !== -1);
     });
 
     it('should work as glob ignore patterns', function() {
@@ -46,23 +47,35 @@ describe('base-ignore', function() {
       assert.equal(mm(arr, '**/*.js').length, 2);
       var ignore = app.gitignore().map(function(pattern) {
         return '!' + pattern;
-      })
+      });
       assert.equal(mm(arr, ['**/*.js'].concat(ignore)).length, 1);
     });
   });
 
   describe('.ignore', function() {
-    it('should create add ignore patterns to `app.cache.ignores`', function() {
+    it('should create add ignore patterns to `app.cache.ignored`', function() {
       app.ignore('.DS_Store');
-      assert(app.cache.ignores[process.cwd()].length);
-      assert.equal(app.cache.ignores[process.cwd()][0], '**/.DS_Store/**');
+      assert(app.cache.ignored[process.cwd()].length);
+      assert.equal(app.cache.ignored[process.cwd()][0], '.DS_Store');
     });
 
-    it('should not add duplicates', function() {
+    it('should not add dupes', function() {
       app.ignore('.DS_Store');
       app.ignore('.DS_Store');
       app.ignore('.DS_Store');
-      assert.equal(app.cache.ignores[process.cwd()].length, 1);
+      assert.equal(app.cache.ignored[process.cwd()].length, 1);
+    });
+  });
+
+  describe('.isIgnored', function() {
+    it('should return true if the given filepath is ignored', function() {
+      assert(app.isIgnored('.DS_Store'));
+      assert(app.isIgnored(path.resolve('.DS_Store')));
+    });
+
+    it('should return false if the given filepath is not ignored', function() {
+      assert(!app.isIgnored('index.js'));
+      assert(!app.isIgnored(path.resolve('index.js')));
     });
   });
 });
