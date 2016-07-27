@@ -1,7 +1,7 @@
 {
   "name": "base-ignore",
   "description": "Adds an `.ignore` method that parses `.gitignore` and converts the patterns from wildmatch to glob patterns, so they can then be passed to glob, minimatch, micromatch, gulp.src, glob-stream, etc",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "homepage": "https://github.com/node-base/base-ignore",
   "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
   "repository": "node-base/base-ignore",
